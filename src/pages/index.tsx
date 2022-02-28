@@ -1,5 +1,6 @@
 import { GetStaticProps } from 'next';
 import Link from 'next/link';
+import { useState } from 'react';
 import { FiCalendar, FiUser } from 'react-icons/fi';
 import { format } from 'date-fns';
 import Prismic from '@prismicio/client';
@@ -30,11 +31,37 @@ interface HomeProps {
 }
 
 export default function Home({ postsPagination }: HomeProps): JSX.Element {
+  const [nextPage, setNextPage] = useState(postsPagination.next_page);
+  const [posts, setPosts] = useState(postsPagination.results);
+
+  async function getNextPage(): Promise<void> {
+    const nextPosts = await fetch(nextPage);
+    const nextPostsPagination = await nextPosts.json();
+
+    const newPosts = nextPostsPagination.results.map(post => {
+      return {
+        uid: post.uid,
+        first_publication_date: format(
+          new Date(post.first_publication_date),
+          'dd MMM yyyy'
+        ),
+        data: {
+          title: post.data.title,
+          subtitle: post.data.subtitle,
+          author: post.data.author,
+        },
+      };
+    });
+
+    setNextPage(nextPostsPagination.next_page);
+    setPosts([...posts, ...newPosts]);
+  }
+
   return (
     <>
       <Header />
       <div className={commonStyles.container}>
-        {postsPagination.results.map(post => (
+        {posts.map(post => (
           <Link key={post.uid} href={`/post/${post.uid}`}>
             <a className={styles.post}>
               <h1 className={styles.title}>{post.data.title}</h1>
@@ -50,8 +77,10 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
             </a>
           </Link>
         ))}
-        {postsPagination.next_page ? (
-          <a className={styles.link}>Carregar mais posts</a>
+        {nextPage ? (
+          <button type="button" className={styles.link} onClick={getNextPage}>
+            Carregar mais posts
+          </button>
         ) : null}
       </div>
     </>
@@ -64,11 +93,9 @@ export const getStaticProps: GetStaticProps = async () => {
     [Prismic.predicates.at('document.type', 'post')],
     {
       fetch: [],
-      pageSize: 10,
+      pageSize: 2,
     }
   );
-
-  // console.log(postsResponse.results[0].data);
 
   const posts = postsResponse.results.map(post => {
     return {
