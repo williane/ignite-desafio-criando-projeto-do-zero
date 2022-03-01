@@ -35,7 +35,7 @@
 }
 
 .content {
-  margin-top: 2.5rem;
+  margin-top: 5rem;
 
   line-height: 2rem;
   font-size: 1.125rem;
@@ -46,18 +46,27 @@
     font-weight: bold;
     line-height: 2.5rem;
     color: var(--gray-100);
+
+    margin-bottom: 3rem;
   }
 
   p,
-  ul {
+  ul,
+  ol {
     margin: 1.5rem 0;
   }
 
-  ul {
+  ul,
+  ol {
     padding-left: 1.5rem;
 
     li {
       margin: 0.5rem 0;
     }
+  }
+
+  a {
+    color: var(--pink-500);
+    text-decoration: underline;
   }
 }

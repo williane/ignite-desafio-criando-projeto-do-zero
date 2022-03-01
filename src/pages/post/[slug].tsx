@@ -2,6 +2,7 @@ import { GetStaticPaths, GetStaticProps } from 'next';
 import { RichText } from 'prismic-dom';
 import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
 import { format } from 'date-fns';
+import Prismic from '@prismicio/client';
 
 import Header from '../../components/Header';
 
@@ -32,6 +33,20 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps): JSX.Element {
+  function getTimeOfReading(): number {
+    const qty = post.data.content.reduce((acc, curr) => {
+      const headingLength = curr.heading.split(' ').length;
+      const bodyLength = curr.body.reduce((bodyAcc, bodyCurr) => {
+        return bodyAcc + bodyCurr.text.split(' ').length;
+      }, 0);
+      return acc + (bodyLength + headingLength);
+    }, 0);
+
+    const time = Math.ceil(qty / 200);
+
+    return time;
+  }
+
   // TODO
   return (
     <>
@@ -51,34 +66,52 @@ export default function Post({ post }: PostProps): JSX.Element {
             <FiUser /> <span>{post.data.author}</span>
           </div>
           <div>
-            <FiClock /> <span>4 min</span>
+            <FiClock /> <span>{getTimeOfReading()} min</span>
           </div>
         </div>
-        {post.data.content.map(content => (
-          <div key={content.heading} className={styles.content}>
-            <h2>{content.heading}</h2>
-            <div
-              className={styles.contentBody}
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{
-                __html: RichText.asHtml(content.body),
-              }}
-            />
-          </div>
-        ))}
+        {post.data.content ? (
+          post.data.content.map(content => (
+            <div key={content.heading} className={styles.content}>
+              <h2>{content.heading}</h2>
+              <div
+                className={styles.contentBody}
+                // eslint-disable-next-line react/no-danger
+                dangerouslySetInnerHTML={{
+                  __html: RichText.asHtml(content.body),
+                }}
+              />
+            </div>
+          ))
+        ) : (
+          <div className={styles.content}>carregando...</div>
+        )}
       </div>
     </>
   );
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  // const prismic = getPrismicClient();
-  // const posts = await prismic.query(TODO);
+  const prismic = getPrismicClient();
+  const posts = await prismic.query(
+    [Prismic.predicates.at('document.type', 'post')],
+    {
+      fetch: [],
+      pageSize: 2,
+    }
+  );
+
+  const paths = posts.results.map(post => {
+    return {
+      params: {
+        slug: post.uid,
+      },
+    };
+  });
 
   // TODO
   return {
-    paths: [],
-    fallback: 'blocking',
+    paths,
+    fallback: true,
   };
 };
 
