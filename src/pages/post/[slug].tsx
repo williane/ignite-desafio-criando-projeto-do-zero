@@ -1,8 +1,14 @@
+import { useMemo } from 'react';
 import { GetStaticPaths, GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
+
 import { RichText } from 'prismic-dom';
-import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
-import { format } from 'date-fns';
 import Prismic from '@prismicio/client';
+
+import { FiCalendar, FiClock, FiUser } from 'react-icons/fi';
+
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
 
 import Header from '../../components/Header';
 
@@ -33,18 +39,35 @@ interface PostProps {
 }
 
 export default function Post({ post }: PostProps): JSX.Element {
-  function getTimeOfReading(): number {
-    const qty = post.data.content.reduce((acc, curr) => {
-      const headingLength = curr.heading.split(' ').length;
-      const bodyLength = curr.body.reduce((bodyAcc, bodyCurr) => {
-        return bodyAcc + bodyCurr.text.split(' ').length;
-      }, 0);
-      return acc + (bodyLength + headingLength);
-    }, 0);
+  const router = useRouter();
 
-    const time = Math.ceil(qty / 200);
+  const timeOfReading = useMemo(() => {
+    if (router.isFallback) {
+      return 0;
+    }
 
-    return time;
+    const wordsPerMinute = 200;
+
+    const contentWords = post.data.content.reduce(
+      (summedContents, currentContent) => {
+        const headingWords = currentContent.heading.split(/\s/g).length;
+
+        const bodyText = RichText.asText(currentContent.body);
+        const bodyWords = bodyText.split(/\s/g).length;
+
+        return summedContents + headingWords + bodyWords;
+      },
+      0
+    );
+
+    const minutes = contentWords / wordsPerMinute;
+    const readTime = Math.ceil(minutes);
+
+    return readTime;
+  }, [post, router.isFallback]);
+
+  if (router.isFallback) {
+    return <span>Carregando...</span>;
   }
 
   // TODO
@@ -60,31 +83,32 @@ export default function Post({ post }: PostProps): JSX.Element {
         <h1 className={styles.title}>{post.data.title}</h1>
         <div className={styles.grid}>
           <div>
-            <FiCalendar /> <time>{post.first_publication_date}</time>
+            <FiCalendar />{' '}
+            <time>
+              {format(new Date(post.first_publication_date), 'dd MMM yyyy', {
+                locale: ptBR,
+              })}
+            </time>
           </div>
           <div>
             <FiUser /> <span>{post.data.author}</span>
           </div>
           <div>
-            <FiClock /> <span>{getTimeOfReading()} min</span>
+            <FiClock /> <span>{`${timeOfReading} min`}</span>
           </div>
         </div>
-        {post.data.content ? (
-          post.data.content.map(content => (
-            <div key={content.heading} className={styles.content}>
-              <h2>{content.heading}</h2>
-              <div
-                className={styles.contentBody}
-                // eslint-disable-next-line react/no-danger
-                dangerouslySetInnerHTML={{
-                  __html: RichText.asHtml(content.body),
-                }}
-              />
-            </div>
-          ))
-        ) : (
-          <div className={styles.content}>carregando...</div>
-        )}
+        {post.data.content.map(content => (
+          <div key={content.heading} className={styles.content}>
+            <h2>{content.heading}</h2>
+            <div
+              className={styles.contentBody}
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{
+                __html: RichText.asHtml(content.body),
+              }}
+            />
+          </div>
+        ))}
       </div>
     </>
   );
@@ -122,10 +146,7 @@ export const getStaticProps: GetStaticProps = async context => {
   const response = await prismic.getByUID('post', String(slug), {});
 
   const post = {
-    first_publication_date: format(
-      new Date(response.first_publication_date),
-      'dd MMM yyyy'
-    ),
+    first_publication_date: response.first_publication_date,
     data: {
       title: response.data.title,
       banner: {
@@ -139,7 +160,7 @@ export const getStaticProps: GetStaticProps = async context => {
   // TODO
   return {
     props: {
-      post,
+      post: response,
     },
   };
 };
