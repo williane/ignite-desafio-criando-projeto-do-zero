@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { GetStaticPaths, GetStaticProps } from 'next';
 import { useRouter } from 'next/router';
 
@@ -40,6 +40,21 @@ interface PostProps {
 
 export default function Post({ post }: PostProps): JSX.Element {
   const router = useRouter();
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    const anchor = document.getElementById('inject-comments-for-uterances');
+    script.setAttribute('src', 'https://utteranc.es/client.js');
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('async', 'true');
+    script.setAttribute(
+      'repo',
+      'williane/ignite-desafio-criando-projeto-do-zero'
+    );
+    script.setAttribute('issue-term', 'pathname');
+    script.setAttribute('theme', 'github-light');
+    anchor.appendChild(script);
+  }, []);
 
   const timeOfReading = useMemo(() => {
     if (router.isFallback) {
@@ -109,6 +124,15 @@ export default function Post({ post }: PostProps): JSX.Element {
             />
           </div>
         ))}
+        <div className={styles.navigation}>
+          <div>
+            Como Utilizar Hooks <a>Post anterior</a>
+          </div>
+          <div>
+            Criando um app CRA do zero <a>Próximo post</a>
+          </div>
+        </div>
+        <div id="inject-comments-for-uterances" />
       </div>
     </>
   );

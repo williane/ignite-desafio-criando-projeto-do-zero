@@ -70,3 +70,39 @@
     text-decoration: underline;
   }
 }
+
+.navigation {
+  margin-top: 4rem;
+  border-top: 1px solid rgba(215, 215, 215, 0.1);
+
+  display: flex;
+  justify-content: space-between;
+
+  div {
+    margin-top: 3.25rem;
+
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+
+    font-size: 1.25rem;
+
+    a {
+      color: var(--pink-500);
+      font-size: 1rem;
+
+      &:hover {
+        cursor: pointer;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  div:nth-child(1) {
+    align-items: flex-start;
+  }
+
+  div:nth-child(2) {
+    align-items: flex-end;
+  }
+}
