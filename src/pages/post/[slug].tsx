@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { GetStaticPaths, GetStaticProps } from 'next';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 import { RichText } from 'prismic-dom';
 import Prismic from '@prismicio/client';
@@ -36,9 +37,23 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  navigation: {
+    prevPost?: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    };
+    nextPost?: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    };
+  };
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({ post, navigation }: PostProps): JSX.Element {
   const router = useRouter();
 
   useEffect(() => {
@@ -52,7 +67,7 @@ export default function Post({ post }: PostProps): JSX.Element {
       'williane/ignite-desafio-criando-projeto-do-zero'
     );
     script.setAttribute('issue-term', 'pathname');
-    script.setAttribute('theme', 'github-light');
+    script.setAttribute('theme', 'github-dark');
     anchor.appendChild(script);
   }, []);
 
@@ -125,12 +140,26 @@ export default function Post({ post }: PostProps): JSX.Element {
           </div>
         ))}
         <div className={styles.navigation}>
-          <div>
-            Como Utilizar Hooks <a>Post anterior</a>
-          </div>
-          <div>
-            Criando um app CRA do zero <a>Próximo post</a>
-          </div>
+          {navigation.prevPost ? (
+            <div>
+              {navigation.prevPost.data.title}
+              <Link href={`/post/${navigation.prevPost.uid}`}>
+                <a>Post anterior</a>
+              </Link>
+            </div>
+          ) : (
+            <div />
+          )}
+          {navigation.nextPost ? (
+            <div>
+              {navigation.nextPost.data.title}
+              <Link href={`/post/${navigation.nextPost.uid}`}>
+                <a>Proxímo post</a>
+              </Link>
+            </div>
+          ) : (
+            <div />
+          )}
         </div>
         <div id="inject-comments-for-uterances" />
       </div>
@@ -169,22 +198,34 @@ export const getStaticProps: GetStaticProps = async context => {
   const prismic = getPrismicClient();
   const response = await prismic.getByUID('post', String(slug), {});
 
-  const post = {
-    first_publication_date: response.first_publication_date,
-    data: {
-      title: response.data.title,
-      banner: {
-        url: response.data.banner.url,
-      },
-      author: response.data.author,
-      content: response.data.content,
-    },
+  const nextPost = (
+    await prismic.query(Prismic.predicates.at('document.type', 'post'), {
+      pageSize: 1,
+      after: `${response.id}`,
+      orderings: '[document.first_publication_date desc]',
+      fetch: ['post.uid', 'post.title'],
+    })
+  ).results[0];
+
+  const prevPost = (
+    await prismic.query(Prismic.predicates.at('document.type', 'post'), {
+      pageSize: 1,
+      after: `${response.id}`,
+      orderings: '[document.first_publication_date]',
+      fetch: ['post.uid', 'post.title'],
+    })
+  ).results[0];
+
+  const navigation = {
+    prevPost: prevPost || null,
+    nextPost: nextPost || null,
   };
 
   // TODO
   return {
     props: {
       post: response,
+      navigation,
     },
   };
 };
