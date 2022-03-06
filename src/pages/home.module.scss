@@ -39,3 +39,18 @@
     text-decoration: underline;
   }
 }
+
+.exitPreview {
+  margin-top: 60px;
+  background-color: var(--white);
+  border-radius: 4px;
+
+  a {
+    color: var(--gray-900);
+    font-weight: bold;
+    height: 58px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}
